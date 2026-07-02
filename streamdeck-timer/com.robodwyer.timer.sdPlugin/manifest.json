@@ -1,0 +1,40 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"Name": "Timer",
+	"UUID": "com.robodwyer.timer",
+	"Version": "1.0.0.0",
+	"Author": "rob-odwyer",
+	"Icon": "imgs/plugin/marketplace",
+	"Category": "Timer",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"Description": "A configurable countdown timer key. Set a title and duration, press to start or pause, and press-and-hold to reset. The key shows a progress ring that shifts green → amber → red as time runs out, then flashes DONE when the timer expires.",
+	"CodePath": "bin/plugin.js",
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "6.5"
+	},
+	"OS": [
+		{ "Platform": "mac", "MinimumVersion": "12" },
+		{ "Platform": "windows", "MinimumVersion": "10" }
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"Actions": [
+		{
+			"Name": "Timer",
+			"UUID": "com.robodwyer.timer.countdown",
+			"Icon": "imgs/actions/timer/icon",
+			"Tooltip": "A configurable countdown timer with a color progress ring.",
+			"Controllers": ["Keypad"],
+			"PropertyInspectorPath": "ui/timer.html",
+			"States": [
+				{
+					"Image": "imgs/actions/timer/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		}
+	]
+}

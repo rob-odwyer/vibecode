@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Timer Settings</title>
+		<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Title">
+			<sdpi-textfield setting="title" placeholder="e.g. Tea" maxlength="12"></sdpi-textfield>
+		</sdpi-item>
+
+		<sdpi-item label="Minutes">
+			<sdpi-textfield setting="minutes" type="number" min="0" max="180" default="5"></sdpi-textfield>
+		</sdpi-item>
+
+		<sdpi-item label="Seconds">
+			<sdpi-textfield setting="seconds" type="number" min="0" max="59" default="0"></sdpi-textfield>
+		</sdpi-item>
+
+		<sdpi-item>
+			<details>
+				<summary>How to use</summary>
+				<p style="margin: 6px 0 0; opacity: 0.8; line-height: 1.4;">
+					<b>Press</b> to start or pause. <b>Press&nbsp;and&nbsp;hold</b> to reset to
+					the full duration. The ring shrinks and shifts <b>green&nbsp;→&nbsp;amber&nbsp;→&nbsp;red</b>
+					as time runs out, then flashes <b>DONE</b> when the timer expires (press to dismiss).
+				</p>
+			</details>
+		</sdpi-item>
+	</body>
+</html>
