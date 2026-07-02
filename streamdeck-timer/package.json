@@ -1,0 +1,26 @@
+{
+  "name": "com.robodwyer.timer",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Configurable countdown timer plugin for the Elgato Stream Deck (built with the Mini in mind).",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.robodwyer.timer\"",
+    "validate": "streamdeck validate com.robodwyer.timer.sdPlugin",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.1.0"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.7.4",
+    "@rollup/plugin-commonjs": "^29.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@types/node": "^22.0.0",
+    "rollup": "^4.62.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.0"
+  }
+}

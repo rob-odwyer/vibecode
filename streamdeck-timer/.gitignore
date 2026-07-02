@@ -1,0 +1,6 @@
+node_modules/
+*.log
+com.robodwyer.timer.sdPlugin/logs/
+com.robodwyer.timer.sdPlugin/bin/
+*.streamDeckPlugin
+preview.png
