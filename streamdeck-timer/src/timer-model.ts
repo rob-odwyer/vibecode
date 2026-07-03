@@ -38,12 +38,16 @@ function num(value: number | string | undefined, fallback: number): number {
 	return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
-/** Configured total duration in ms, falling back to the default when unset/zero. */
+/**
+ * Configured total duration in ms. A blank/invalid field counts as zero, so
+ * "10 seconds" (seconds=10, minutes blank) is 10s — not 5m10s. The default only
+ * kicks in when the timer is entirely unconfigured (total is zero).
+ */
 export function durationMs(s: TimerSettings): number {
-	const m = num(s.minutes, DEFAULT_MINUTES);
-	const sec = num(s.seconds, DEFAULT_SECONDS);
+	const m = num(s.minutes, 0);
+	const sec = num(s.seconds, 0);
 	const total = Math.round((m * 60 + sec) * 1000);
-	return total > 0 ? total : DEFAULT_MINUTES * 60 * 1000;
+	return total > 0 ? total : (DEFAULT_MINUTES * 60 + DEFAULT_SECONDS) * 1000;
 }
 
 /** Current remaining time in ms for any status. */

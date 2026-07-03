@@ -29,9 +29,20 @@ describe("durationMs", () => {
 		expect(durationMs({ minutes: "2", seconds: "0" })).toBe(120_000);
 	});
 
-	test("falls back to default when total is zero or invalid", () => {
+	test("a seconds-only timer does not pick up the default minutes", () => {
+		// Regression: a blank minutes field must count as 0, not 5 minutes.
+		expect(durationMs({ seconds: 10 })).toBe(10_000);
+		expect(durationMs({ minutes: "", seconds: "10" })).toBe(10_000);
+	});
+
+	test("a minutes-only timer leaves seconds at zero", () => {
+		expect(durationMs({ minutes: 30 })).toBe(1_800_000);
+	});
+
+	test("falls back to default only when nothing is configured", () => {
 		expect(durationMs({ minutes: 0, seconds: 0 })).toBe(DEFAULT_MINUTES * 60_000);
 		expect(durationMs({ minutes: "abc" })).toBe(DEFAULT_MINUTES * 60_000);
+		expect(durationMs({})).toBe(DEFAULT_MINUTES * 60_000);
 	});
 });
 
