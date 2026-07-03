@@ -7,7 +7,7 @@
 	"Icon": "imgs/plugin/marketplace",
 	"Category": "Timer",
 	"CategoryIcon": "imgs/plugin/category-icon",
-	"Description": "A configurable countdown timer key. Set a title and duration, press to start or pause, and press-and-hold to reset. The key shows a progress ring that shifts green → amber → red as time runs out, then flashes DONE when the timer expires.",
+	"Description": "A configurable countdown timer key. Set a title and duration, press to start or pause, and press-and-hold to reset. The key shows a progress ring that shifts green → amber → red as time runs out, then flashes red when the timer expires.",
 	"CodePath": "bin/plugin.js",
 	"SDKVersion": 2,
 	"Software": {

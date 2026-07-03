@@ -1,6 +1,7 @@
 /**
- * Renders the key face as an SVG data URI: a colored progress ring with the
- * title (or "DONE") in the center. Pure and unit-testable — no SDK imports.
+ * Renders the key face as an SVG data URI: a colored progress ring (or the
+ * flashing done frame). Text is not drawn here — Stream Deck composites the
+ * user's native title on top. Pure and unit-testable — no SDK imports.
  */
 
 import { hexForFraction } from "./color.js";
@@ -14,8 +15,6 @@ export const STROKE = 12;
 export const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export interface RenderState {
-	/** Text shown inside the ring (already the final string, e.g. "DONE"). */
-	title: string;
 	/** Fraction of time remaining, 0..1 (drives arc length + color). */
 	fraction: number;
 	status: Status;
@@ -29,46 +28,16 @@ export function arcDashoffset(fraction: number, circumference = CIRCUMFERENCE): 
 	return +(circumference * (1 - f)).toFixed(2);
 }
 
-function escapeXml(s: string): string {
-	return s
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&apos;");
-}
-
-/** Pick a font size that keeps the title inside the ring. */
-function titleFontSize(title: string): number {
-	const len = [...title].length;
-	if (len <= 4) return 30;
-	if (len <= 7) return 22;
-	if (len <= 10) return 17;
-	return 14;
-}
-
-/** Trim absurdly long titles so they don't overflow the key. */
-function clampTitle(title: string): string {
-	const chars = [...title];
-	return chars.length > 12 ? chars.slice(0, 11).join("") + "…" : title;
-}
-
 export function renderSvg(state: RenderState): string {
 	const { status, flashOn = true } = state;
-	const title = clampTitle(state.title ?? "");
-	const fontSize = titleFontSize(title || "0");
 
 	if (status === "done") {
 		const bg = flashOn ? "#e74c3c" : "#2a0d0a";
 		const ring = flashOn ? "#ffffff" : "#5c2a25";
-		const text = flashOn ? "#ffffff" : "#e74c3c";
 		return svg(`
 			<rect x="0" y="0" width="${SIZE}" height="${SIZE}" rx="24" fill="${bg}"/>
 			<circle cx="${CENTER}" cy="${CENTER}" r="${RADIUS}" fill="none"
 				stroke="${ring}" stroke-width="${STROKE}" opacity="0.9"/>
-			<text x="${CENTER}" y="${CENTER}" fill="${text}" font-size="30"
-				font-family="'Helvetica Neue', Arial, sans-serif" font-weight="700"
-				text-anchor="middle" dominant-baseline="central">DONE</text>
 		`);
 	}
 
@@ -76,11 +45,6 @@ export function renderSvg(state: RenderState): string {
 	const offset = arcDashoffset(state.fraction);
 	// Paused rings are dimmed to signal the frozen state.
 	const arcOpacity = status === "paused" ? 0.45 : 1;
-	const titleText = title
-		? `<text x="${CENTER}" y="${CENTER}" fill="#ffffff" font-size="${fontSize}"
-				font-family="'Helvetica Neue', Arial, sans-serif" font-weight="600"
-				text-anchor="middle" dominant-baseline="central">${escapeXml(title)}</text>`
-		: "";
 
 	return svg(`
 		<rect x="0" y="0" width="${SIZE}" height="${SIZE}" rx="24" fill="#17181a"/>
@@ -91,7 +55,6 @@ export function renderSvg(state: RenderState): string {
 			stroke-dasharray="${CIRCUMFERENCE.toFixed(2)}" stroke-dashoffset="${offset}"
 			opacity="${arcOpacity}"
 			transform="rotate(-90 ${CENTER} ${CENTER})"/>
-		${titleText}
 	`);
 }
 

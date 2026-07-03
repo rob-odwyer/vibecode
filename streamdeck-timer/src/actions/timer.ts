@@ -68,18 +68,23 @@ export class TimerAction extends SingletonAction<TimerSettings> {
 	}
 
 	override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<TimerSettings>): Promise<void> {
-		// The property inspector owns title + duration. Merge them into the cached
-		// runtime state and re-render — but do NOT write settings back here. Echoing
-		// setSettings while the user is typing pushes stale values back into the
-		// inspector and clears the field mid-edit. The inspector already persists
-		// title/duration; the plugin only persists when a key press changes state.
+		// The property inspector owns the duration. Merge it into the cached runtime
+		// state and re-render — but do NOT write settings back unconditionally.
+		// Echoing setSettings while the user is typing pushes stale values back into
+		// the inspector and clears the field mid-edit. The inspector already
+		// persists the duration; the plugin only writes back when the change forces
+		// a reset, which is safe because the echoed duration string is exactly what
+		// the inspector just sent.
 		const r = this.runtime(ev.action.id);
 		const incoming = ev.payload.settings ?? {};
-		r.settings = {
-			...r.settings,
-			title: incoming.title,
-			duration: incoming.duration,
-		};
+		const durationChanged = incoming.duration !== r.settings.duration;
+		r.settings = { ...r.settings, duration: incoming.duration };
+		if (durationChanged && (r.settings.status ?? "idle") !== "idle") {
+			// A running/paused/done timer's end time or banked remaining no longer
+			// matches the new duration, so drop back to a fresh idle timer.
+			await this.apply(ev.action, reset(r.settings), { persist: true });
+			return;
+		}
 		// An idle timer derives its full ring from durationMs, so a new duration is
 		// reflected immediately without touching the persisted runtime state.
 		await this.render(ev.action, r.settings, r.flashOn);
@@ -129,18 +134,15 @@ export class TimerAction extends SingletonAction<TimerSettings> {
 		this.syncLoop(action, settings);
 	}
 
-	/** Draws the current key face. */
+	/** Draws the current key face. Stream Deck composites the native title on top. */
 	private async render(action: TimerTarget, settings: TimerSettings, flashOn: boolean): Promise<void> {
 		const status: Status = settings.status ?? "idle";
 		const state = {
-			title: status === "done" ? "DONE" : settings.title ?? "",
 			fraction: fractionRemaining(settings, Date.now()),
 			status,
 			flashOn,
 		};
 		await action.setImage(svgToDataUri(renderSvg(state)));
-		// The title is drawn inside the SVG, so clear the native title layer.
-		await action.setTitle("");
 	}
 
 	/** Starts/stops the per-status interval loop (running = tick, done = flash). */

@@ -23,10 +23,6 @@
 		</style>
 	</head>
 	<body>
-		<sdpi-item label="Title">
-			<sdpi-textfield setting="title" placeholder="e.g. Tea" maxlength="12"></sdpi-textfield>
-		</sdpi-item>
-
 		<sdpi-item label="Duration">
 			<sdpi-textfield setting="duration" placeholder="e.g. 1h 30m, 90s, 5 min"></sdpi-textfield>
 		</sdpi-item>
@@ -40,10 +36,11 @@
 				<summary>How to use</summary>
 				<p style="margin: 6px 0 0; opacity: 0.8; line-height: 1.4;">
 					Enter a duration in plain language — <b>1h 30m</b>, <b>90s</b>, <b>5 min</b>, <b>2h</b>
-					(a bare number like <b>90</b> means 90 seconds).
+					(a bare number like <b>90</b> means 90 seconds). Changing the duration resets the timer.
+					Use the <b>Title</b> field above to label the key.
 					<b>Press</b> the key to start or pause. <b>Press&nbsp;and&nbsp;hold</b> to reset to the
 					full duration. The ring shrinks and shifts <b>green&nbsp;→&nbsp;amber&nbsp;→&nbsp;red</b>
-					as time runs out, then flashes <b>DONE</b> when the timer expires (press to dismiss).
+					as time runs out, then flashes red when the timer expires (press to dismiss).
 				</p>
 			</details>
 		</sdpi-item>

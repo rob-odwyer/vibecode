@@ -17,8 +17,6 @@ export type Status = "idle" | "running" | "paused" | "done";
 // Declared as a `type` (not `interface`) so it satisfies the SDK's
 // `JsonObject` index-signature constraint on `SingletonAction<T>`.
 export type TimerSettings = {
-	/** User-configured title shown inside the ring (Property Inspector). */
-	title?: string;
 	/**
 	 * User-configured duration as a human-readable string (e.g. "1h 30m", "90s",
 	 * "5 min"), parsed with parse-duration. Blank/unparseable falls back to the
