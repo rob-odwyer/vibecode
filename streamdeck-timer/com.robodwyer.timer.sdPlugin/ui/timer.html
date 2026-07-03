@@ -27,8 +27,8 @@
 			<sdpi-textfield setting="duration" placeholder="e.g. 1h 30m, 90s, 5 min"></sdpi-textfield>
 		</sdpi-item>
 
-		<sdpi-item label="">
-			<div id="parsed" data-state="default">Defaults to 5m</div>
+		<sdpi-item label="Parsed">
+			<div id="parsed" data-state="default">5m (default)</div>
 		</sdpi-item>
 
 		<sdpi-item>
@@ -66,7 +66,7 @@
 			function setReadout(raw) {
 				const trimmed = String(raw ?? "").trim();
 				if (!trimmed) {
-					out.textContent = "Defaults to 5m";
+					out.textContent = "5m (default)";
 					out.dataset.state = "default";
 					return;
 				}
@@ -77,7 +77,7 @@
 					out.textContent = "Couldn't read that — will use 5m. Try “1h 30m”, “90s”, “5 min”.";
 					out.dataset.state = "warn";
 				} else {
-					out.textContent = "= " + formatDuration(Math.round(ms));
+					out.textContent = formatDuration(Math.round(ms));
 					out.dataset.state = "ok";
 				}
 			}
