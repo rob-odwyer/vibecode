@@ -75,8 +75,7 @@ export class TimerAction extends SingletonAction<TimerSettings> {
 		const merged: TimerSettings = {
 			...r.settings,
 			title: incoming.title,
-			minutes: incoming.minutes,
-			seconds: incoming.seconds,
+			duration: incoming.duration,
 		};
 		// If the timer isn't running, adopt the new duration immediately.
 		const status = merged.status ?? "idle";

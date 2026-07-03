@@ -10,6 +10,8 @@
  * app restarts, and dropped render ticks.
  */
 
+import parse from "parse-duration";
+
 export type Status = "idle" | "running" | "paused" | "done";
 
 // Declared as a `type` (not `interface`) so it satisfies the SDK's
@@ -17,9 +19,12 @@ export type Status = "idle" | "running" | "paused" | "done";
 export type TimerSettings = {
 	/** User-configured title shown inside the ring (Property Inspector). */
 	title?: string;
-	/** User-configured duration (Property Inspector). */
-	minutes?: number | string;
-	seconds?: number | string;
+	/**
+	 * User-configured duration as a human-readable string (e.g. "1h 30m", "90s",
+	 * "5 min"), parsed with parse-duration. Blank/unparseable falls back to the
+	 * default duration.
+	 */
+	duration?: string;
 
 	/** Persisted runtime state so a running timer survives reloads. */
 	status?: Status;
@@ -30,24 +35,44 @@ export type TimerSettings = {
 };
 
 export const DEFAULT_MINUTES = 5;
-export const DEFAULT_SECONDS = 0;
+export const DEFAULT_MS = DEFAULT_MINUTES * 60_000;
 
-function num(value: number | string | undefined, fallback: number): number {
-	if (value === undefined || value === null || value === "") return fallback;
-	const n = Number(value);
-	return Number.isFinite(n) && n >= 0 ? n : fallback;
+/**
+ * Parses a human-readable duration string to ms via parse-duration, or null if
+ * it can't be read as a positive duration. Exposed so the state machine and the
+ * property inspector agree on what counts as valid.
+ */
+export function parseDuration(input: string | undefined): number | null {
+	const trimmed = (input ?? "").trim();
+	// A bare, unit-less number reads most naturally as seconds ("90" -> 90s),
+	// rather than parse-duration's default of milliseconds.
+	const normalized = /^\d+(?:\.\d+)?$/.test(trimmed) ? `${trimmed}s` : trimmed;
+	const ms = parse(normalized);
+	return ms != null && ms > 0 ? Math.round(ms) : null;
 }
 
 /**
- * Configured total duration in ms. A blank/invalid field counts as zero, so
- * "10 seconds" (seconds=10, minutes blank) is 10s — not 5m10s. The default only
- * kicks in when the timer is entirely unconfigured (total is zero).
+ * Configured total duration in ms. Falls back to the default (5m) when the
+ * duration string is blank or unparseable.
  */
 export function durationMs(s: TimerSettings): number {
-	const m = num(s.minutes, 0);
-	const sec = num(s.seconds, 0);
-	const total = Math.round((m * 60 + sec) * 1000);
-	return total > 0 ? total : (DEFAULT_MINUTES * 60 + DEFAULT_SECONDS) * 1000;
+	return parseDuration(s.duration) ?? DEFAULT_MS;
+}
+
+/**
+ * Formats a duration in ms as a compact human string, e.g. 10000 -> "10s",
+ * 5_400_000 -> "1h 30m". Used for the property inspector's validation readout.
+ */
+export function formatDuration(ms: number): string {
+	const total = Math.max(0, Math.round(ms / 1000));
+	const h = Math.floor(total / 3600);
+	const m = Math.floor((total % 3600) / 60);
+	const s = total % 60;
+	const parts: string[] = [];
+	if (h) parts.push(`${h}h`);
+	if (m) parts.push(`${m}m`);
+	if (s || parts.length === 0) parts.push(`${s}s`);
+	return parts.join(" ");
 }
 
 /** Current remaining time in ms for any status. */

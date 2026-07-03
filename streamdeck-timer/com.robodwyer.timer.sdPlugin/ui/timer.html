@@ -5,29 +5,98 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Timer Settings</title>
 		<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+		<style>
+			#parsed {
+				font-size: 12px;
+				line-height: 1.3;
+				opacity: 0.85;
+			}
+			#parsed[data-state="ok"] {
+				color: #2ecc71;
+			}
+			#parsed[data-state="warn"] {
+				color: #e0a030;
+			}
+			#parsed[data-state="default"] {
+				opacity: 0.6;
+			}
+		</style>
 	</head>
 	<body>
 		<sdpi-item label="Title">
 			<sdpi-textfield setting="title" placeholder="e.g. Tea" maxlength="12"></sdpi-textfield>
 		</sdpi-item>
 
-		<sdpi-item label="Minutes">
-			<sdpi-textfield setting="minutes" type="number" min="0" max="180" placeholder="0"></sdpi-textfield>
+		<sdpi-item label="Duration">
+			<sdpi-textfield setting="duration" placeholder="e.g. 1h 30m, 90s, 5 min"></sdpi-textfield>
 		</sdpi-item>
 
-		<sdpi-item label="Seconds">
-			<sdpi-textfield setting="seconds" type="number" min="0" max="59" placeholder="0"></sdpi-textfield>
+		<sdpi-item label="">
+			<div id="parsed" data-state="default">Defaults to 5m</div>
 		</sdpi-item>
 
 		<sdpi-item>
 			<details>
 				<summary>How to use</summary>
 				<p style="margin: 6px 0 0; opacity: 0.8; line-height: 1.4;">
-					<b>Press</b> to start or pause. <b>Press&nbsp;and&nbsp;hold</b> to reset to
-					the full duration. The ring shrinks and shifts <b>green&nbsp;→&nbsp;amber&nbsp;→&nbsp;red</b>
+					Enter a duration in plain language — <b>1h 30m</b>, <b>90s</b>, <b>5 min</b>, <b>2h</b>
+					(a bare number like <b>90</b> means 90 seconds).
+					<b>Press</b> the key to start or pause. <b>Press&nbsp;and&nbsp;hold</b> to reset to the
+					full duration. The ring shrinks and shifts <b>green&nbsp;→&nbsp;amber&nbsp;→&nbsp;red</b>
 					as time runs out, then flashes <b>DONE</b> when the timer expires (press to dismiss).
 				</p>
 			</details>
 		</sdpi-item>
+
+		<script type="module">
+			import parse from "https://esm.sh/parse-duration@2.1.6";
+
+			const out = document.getElementById("parsed");
+
+			// Mirror of formatDuration() in src/timer-model.ts — keep them in sync.
+			function formatDuration(ms) {
+				const total = Math.max(0, Math.round(ms / 1000));
+				const h = Math.floor(total / 3600);
+				const m = Math.floor((total % 3600) / 60);
+				const s = total % 60;
+				const parts = [];
+				if (h) parts.push(`${h}h`);
+				if (m) parts.push(`${m}m`);
+				if (s || parts.length === 0) parts.push(`${s}s`);
+				return parts.join(" ");
+			}
+
+			function setReadout(raw) {
+				const trimmed = String(raw ?? "").trim();
+				if (!trimmed) {
+					out.textContent = "Defaults to 5m";
+					out.dataset.state = "default";
+					return;
+				}
+				// A bare number reads as seconds ("90" -> 90s); mirrors parseDuration() in the plugin.
+				const normalized = /^\d+(?:\.\d+)?$/.test(trimmed) ? `${trimmed}s` : trimmed;
+				const ms = parse(normalized);
+				if (ms == null || ms <= 0) {
+					out.textContent = "Couldn't read that — will use 5m. Try “1h 30m”, “90s”, “5 min”.";
+					out.dataset.state = "warn";
+				} else {
+					out.textContent = "= " + formatDuration(Math.round(ms));
+					out.dataset.state = "ok";
+				}
+			}
+
+			// Poll the field value: this covers both live typing and the async load
+			// of saved settings after sdpi-components connects to Stream Deck.
+			let last;
+			function tick() {
+				const field = document.querySelector('sdpi-textfield[setting="duration"]');
+				const raw = field ? field.value : "";
+				if (raw === last) return;
+				last = raw;
+				setReadout(raw);
+			}
+			setInterval(tick, 300);
+			document.addEventListener("input", tick, true);
+		</script>
 	</body>
 </html>

@@ -11,7 +11,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@elgato/streamdeck": "^2.1.0"
+    "@elgato/streamdeck": "^2.1.0",
+    "parse-duration": "^2.1.6"
   },
   "devDependencies": {
     "@elgato/cli": "^1.7.4",
