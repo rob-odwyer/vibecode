@@ -109,9 +109,13 @@ export function pause(s: TimerSettings, now: number): TimerSettings {
 	return { ...s, status: "paused", remainingMs: remainingMs(s, now), endTimestamp: undefined };
 }
 
-/** Return to a fresh, full, idle timer. */
+/**
+ * Return to a fresh, full, idle timer. Leaves `remainingMs` undefined so the
+ * idle ring is always derived from the current `durationMs` — this way editing
+ * the duration afterwards is reflected immediately.
+ */
 export function reset(s: TimerSettings): TimerSettings {
-	return { ...s, status: "idle", remainingMs: durationMs(s), endTimestamp: undefined };
+	return { ...s, status: "idle", remainingMs: undefined, endTimestamp: undefined };
 }
 
 /** Enter the finished/flashing state. */

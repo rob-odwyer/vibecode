@@ -68,19 +68,22 @@ export class TimerAction extends SingletonAction<TimerSettings> {
 	}
 
 	override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<TimerSettings>): Promise<void> {
-		// The Property Inspector only edits title/duration. Keep the live runtime
-		// fields (status/timestamps) and graft the new config on top.
+		// The property inspector owns title + duration. Merge them into the cached
+		// runtime state and re-render — but do NOT write settings back here. Echoing
+		// setSettings while the user is typing pushes stale values back into the
+		// inspector and clears the field mid-edit. The inspector already persists
+		// title/duration; the plugin only persists when a key press changes state.
 		const r = this.runtime(ev.action.id);
 		const incoming = ev.payload.settings ?? {};
-		const merged: TimerSettings = {
+		r.settings = {
 			...r.settings,
 			title: incoming.title,
 			duration: incoming.duration,
 		};
-		// If the timer isn't running, adopt the new duration immediately.
-		const status = merged.status ?? "idle";
-		const next = status === "running" || status === "paused" ? merged : reset(merged);
-		await this.apply(ev.action, next, { persist: true });
+		// An idle timer derives its full ring from durationMs, so a new duration is
+		// reflected immediately without touching the persisted runtime state.
+		await this.render(ev.action, r.settings, r.flashOn);
+		this.syncLoop(ev.action, r.settings);
 	}
 
 	override onKeyDown(ev: KeyDownEvent<TimerSettings>): void {

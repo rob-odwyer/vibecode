@@ -101,12 +101,14 @@ describe("start / pause / resume", () => {
 });
 
 describe("reset / markDone", () => {
-	test("reset returns a full idle timer", () => {
+	test("reset returns a full idle timer that tracks the current duration", () => {
 		const s = reset({ duration: "2m", status: "running", endTimestamp: 42 });
 		expect(s.status).toBe("idle");
-		expect(s.remainingMs).toBe(120_000);
+		expect(s.remainingMs).toBeUndefined();
 		expect(s.endTimestamp).toBeUndefined();
 		expect(fractionRemaining(s, T0)).toBe(1);
+		// Editing the duration after reset is reflected immediately (still full).
+		expect(fractionRemaining({ ...s, duration: "10m" }, T0)).toBe(1);
 	});
 
 	test("markDone yields an empty, finished timer", () => {
@@ -149,7 +151,8 @@ describe("press (short-press state machine)", () => {
 	test("done → idle (dismiss to full)", () => {
 		const dismissed = press({ status: "done", duration: "3m" }, T0);
 		expect(dismissed.status).toBe("idle");
-		expect(dismissed.remainingMs).toBe(180_000);
+		expect(dismissed.remainingMs).toBeUndefined();
+		expect(fractionRemaining(dismissed, T0)).toBe(1);
 	});
 
 	test("unconfigured (undefined status) starts", () => {
