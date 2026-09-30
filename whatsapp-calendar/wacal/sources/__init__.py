@@ -11,11 +11,12 @@ from __future__ import annotations
 from typing import Callable
 from datetime import datetime
 
-from . import export, inbox
+from . import export, inbox, whatsmeow
 
 Fetcher = Callable[[datetime | None, int], list[dict]]
 
 SOURCES: dict[str, Fetcher] = {
     "export": export.fetch,
     "inbox": inbox.fetch,
+    "whatsmeow": whatsmeow.fetch,
 }

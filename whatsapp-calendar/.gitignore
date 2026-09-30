@@ -4,3 +4,4 @@ state/*
 inbox-exports/
 __pycache__/
 *.pyc
+bridge/wa-bridge

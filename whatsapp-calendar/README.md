@@ -31,19 +31,18 @@ extraction works by editing a prompt.
 
 ## Read this first: getting at the WhatsApp messages
 
-There is no OAuth API that reads a personal WhatsApp account's chats. Two
-supported paths are wired in; pick with `WACAL_SOURCE`:
+There is no OAuth API that reads a personal WhatsApp account's chats. Three
+paths are wired in; pick with `WACAL_SOURCE`:
 
 | Source | What it is | Pros | Cons |
 |---|---|---|---|
-| `export` (default) | You use WhatsApp's **Export chat** and drop the `.txt` into `inbox-exports/` | No API, works for any chat including groups, five minutes to set up | Manual step each time (or a phone automation that shares the export to a synced folder) |
-| `inbox` | **WhatsApp Business Cloud API** webhooks → `scripts/inbox_server.py` (a tiny always-on receiver you host) | Fully automatic; real OAuth-style credentials from Meta | Only sees messages sent *to your business number*; needs a Meta developer app and a public HTTPS host |
+| `whatsmeow` | A Go bridge in `bridge/` that links to your account as a **companion device** (the WhatsApp Web multidevice protocol, via [go.mau.fi/whatsmeow](https://pkg.go.dev/go.mau.fi/whatsmeow)) | Fully automatic; sees your personal and group chats; also understands WhatsApp's native group *Event* messages | Unofficial: it is not an API Meta offers, it is against WhatsApp's terms of service, and accounts do get banned. Needs a Go toolchain to build |
+| `export` | You use WhatsApp's **Export chat** and drop the `.txt` into `inbox-exports/` | No API, works for any chat, five minutes to set up | Manual step each time |
+| `inbox` | **WhatsApp Business Cloud API** webhooks → `scripts/inbox_server.py` (a tiny receiver you host), or `wa-bridge serve` | Official (for the Cloud API); real credentials from Meta | Cloud API only sees messages sent *to your business number*; needs a Meta app and a public HTTPS host |
 
-If you want a personal/group chat *and* full automation, the remaining
-option is a third-party linked-device bridge (Whapi, Green API, and similar,
-or the open-source Baileys/whatsapp-web.js libraries). Those work but are
-against WhatsApp's terms and accounts do get banned, so they are not built
-in. Adding one is a single function; see `wacal/sources/__init__.py`.
+`whatsmeow` is the one that does what you asked for. Use a number you can
+afford to lose if Meta objects, and don't send messages through the bridge
+(it only reads, which keeps it well away from spam heuristics).
 
 ## Setup
 
@@ -63,6 +62,42 @@ For a routine whose container starts empty each run, put
 client id/secret in the environment's secrets instead of shipping the token
 file, and persist `state/cursor.json` somewhere (commit it, or store it in a
 bucket). The cursor is the only state the routine needs between runs.
+
+### Source: whatsmeow (the Go bridge)
+
+```bash
+cd bridge && go build -o wa-bridge . && cd ..   # needs Go 1.26+ and a C compiler (sqlite)
+./bridge/wa-bridge link                          # scan the QR with WhatsApp > Linked devices
+./bridge/wa-bridge link --phone +447700900123    # ...or pair with a code (headless)
+./bridge/wa-bridge groups                        # find the JID of the chat you care about
+```
+
+Put the JID in `WACAL_WA_CHAT_ID` (and, if you want the bridge to *store*
+nothing else, in `WACAL_WA_CHATS` too) and set `WACAL_SOURCE=whatsmeow`.
+
+How it works: `fetch_messages.py` runs `wa-bridge fetch`, which connects as
+the linked device, waits for WhatsApp to deliver everything queued since the
+last connection (whatsmeow's `OfflineSyncCompleted` event), stores the
+decrypted messages in `state/wa-messages.sqlite3`, prints them as JSON, and
+disconnects. On first link WhatsApp also sends a history sync of recent
+conversations, which is stored the same way, so the first run has context.
+
+Two files in `state/` must persist between runs: `whatsmeow.db` (the session
+and Signal keys: losing it means re-linking) and `wa-messages.sqlite3`. For a
+routine whose container starts empty, keep `state/` on a mounted volume or
+sync it to a bucket before and after each run. They are secrets: never
+commit them.
+
+Message edits update the stored text under the original id; deleted
+messages, reactions and stickers are dropped. Group *Event* messages are
+rendered as `[event] name / start: ... / location: ...` with times already
+in `TIMEZONE`, so the agent can lift them straight into an event.
+
+If you would rather keep a daemon connected, `./bridge/wa-bridge serve`
+exposes the same `GET /messages` API as `inbox_server.py`; point
+`WACAL_SOURCE=inbox` and `WACAL_INBOX_URL` at it. A companion device that
+stays offline for a long stretch can be unlinked by WhatsApp, so run the
+routine at least daily if you use the one-shot mode.
 
 ### Source: export
 
@@ -95,6 +130,7 @@ All are `python scripts/<name>.py --help` friendly and print JSON.
 | `ack.py` | Move the cursor forward once a batch is safely in the calendar. |
 | `google_auth.py` | One-time OAuth consent. |
 | `inbox_server.py` | Webhook receiver + message API for the `inbox` source. |
+| `bridge/wa-bridge` | Go: `link`, `fetch`, `serve`, `groups` for the `whatsmeow` source. |
 
 ### Idempotency
 
@@ -116,9 +152,12 @@ upsert (dry-run, then real) → ack → report. If a step fails it stops before
 
 ```bash
 cd whatsapp-calendar && python -m unittest discover -s tests -v
+cd bridge && go test ./...
 ```
 
-Covers the export parser (several locale formats, multi-line messages,
+Python: the export parser (several locale formats, multi-line messages,
 dedup), event validation and key stability, the Calendar request body
-builder, and the webhook payload flattening plus signature check. No network
-access needed.
+builder, the webhook payload flattening plus signature check, and the
+whatsmeow adapter's command line. Go: message conversion (text, captions,
+replies, edits, native Events, skipped reactions) and the SQLite store. No
+network access needed.

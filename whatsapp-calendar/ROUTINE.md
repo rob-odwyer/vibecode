@@ -31,7 +31,11 @@ any other way. Today's date and the timezone are in the environment
      details and list every relevant message id in `source_message_ids`.
      If a plan was cancelled, do not emit it (and if it was created by an
      earlier run, delete it with `calendar_search.py --delete-key`).
-   - Put who said it and a short quote in `description`.
+   - A message whose text starts with `[event]` is a WhatsApp group Event
+     with structured `start:`/`end:`/`location:` lines: copy those exactly
+     and give it confidence 1.0. `[event CANCELLED]` means remove it.
+   - Put who said it and a short quote in `description`. Messages may carry
+     `chat_name` and `from_me` (sender "me" is you).
    - Set `confidence` honestly: 0.9+ when date, time and purpose are explicit;
      0.6–0.8 when you had to infer; below 0.6 when it is a guess.
 
