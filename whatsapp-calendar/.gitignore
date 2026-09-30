@@ -1,0 +1,6 @@
+.env
+state/*
+!state/.gitkeep
+inbox-exports/
+__pycache__/
+*.pyc

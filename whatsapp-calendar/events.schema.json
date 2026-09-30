@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "wacal events",
+  "description": "What the agent hands to scripts/calendar_upsert.py: a list of calendar events extracted from WhatsApp messages.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["title", "start", "source_message_ids"],
+    "additionalProperties": false,
+    "properties": {
+      "title": { "type": "string", "minLength": 1, "description": "Short, specific. 'Dentist – Sam' not 'appointment'." },
+      "start": {
+        "type": "string",
+        "description": "YYYY-MM-DD for an all-day event, or an ISO-8601 datetime WITH offset (e.g. 2026-10-04T18:30:00+01:00) for a timed one."
+      },
+      "end": {
+        "type": ["string", "null"],
+        "description": "Same format as start. Optional: timed events default to +1h, all-day events to the same day. Multi-day all-day events give the last day (inclusive)."
+      },
+      "location": { "type": ["string", "null"] },
+      "description": { "type": "string", "description": "Context worth keeping: who said it, quoted message text, caveats." },
+      "chat_id": { "type": "string", "description": "chat_id from the source messages." },
+      "source_message_ids": {
+        "type": "array", "minItems": 1, "items": { "type": "string" },
+        "description": "ids of the messages this event was inferred from. Drives idempotency: same messages + same title = same calendar event."
+      },
+      "confidence": { "type": "number", "minimum": 0, "maximum": 1, "default": 1,
+        "description": "How sure the extraction is. Below WACAL_MIN_CONFIDENCE (0.6) the event is reported but not written." },
+      "source_key": { "type": ["string", "null"],
+        "description": "Only when updating an event created in an earlier run (copy its wacal_key from calendar_search.py). Otherwise omit." }
+    }
+  }
+}
