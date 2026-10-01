@@ -7,6 +7,9 @@ Prerequisites (Google Cloud Console):
      as GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.
   3. While the app is in "Testing", add your Google account as a test user.
 
+Re-run it if the scopes in wacal/gcal.py change (e.g. after enabling Drive
+state sync); Google only grants a refresh token for the scopes consented to.
+
 This works on a headless machine: it prints a URL, you open it anywhere,
 approve, and paste back the URL your browser lands on (it will be a
 http://localhost/... address that fails to load - that's expected; the code

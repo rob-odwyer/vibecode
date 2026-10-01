@@ -65,3 +65,6 @@ any other way. Today's date and the timezone are in the environment
 - Never invent times; if a message gives a date but no time, make it all-day.
 - If `fetch_messages.py` or `calendar_upsert.py` exits non-zero, do not ack;
   report the error.
+- If the fetch reports that another run holds the state lease, stop and say
+  so. Do not run `state_sync.py unlock` or `pull --force` yourself; a human
+  decides that.

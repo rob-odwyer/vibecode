@@ -12,7 +12,7 @@ import json
 import sys
 
 import _bootstrap  # noqa: F401
-from wacal import cursor
+from wacal import cursor, statesync
 
 
 def main() -> int:
@@ -40,6 +40,9 @@ def main() -> int:
         saved = cursor.save(newest["timestamp"], newest["id"])
     else:
         saved = cursor.save(args.through, args.id)
+    if statesync.enabled():
+        statesync.push(files=("cursor.json",), release=False)
+        saved["synced"] = "drive"
     print(json.dumps({"action": "advanced", **saved}, indent=2))
     return 0
 

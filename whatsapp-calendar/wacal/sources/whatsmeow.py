@@ -14,6 +14,8 @@ Settings:
     WACAL_WA_CHAT_ID      optional: only this chat JID (see `wa-bridge groups`)
     WACAL_WA_FETCH_WAIT   how long to wait for queued messages (default 20s)
     WACAL_WA_OFFLINE=1    don't connect; read only what is already stored
+    WACAL_STATE_SYNC=drive  pull state from Google Drive before the bridge runs
+                            and push it straight after (see wacal/statesync.py)
 """
 from __future__ import annotations
 
@@ -22,6 +24,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from .. import statesync
 from ..config import cfg, PROJECT_ROOT
 
 
@@ -47,7 +50,14 @@ def fetch(since: datetime | None, limit: int) -> list[dict]:
     if cfg("WACAL_WA_OFFLINE", "") in ("1", "true", "yes"):
         cmd.append("--offline")
 
-    proc = subprocess.run(cmd, capture_output=True, text=True, cwd=PROJECT_ROOT)
+    if statesync.enabled():
+        statesync.pull()
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=PROJECT_ROOT)
+    finally:
+        # Push even if the bridge failed: its Signal state may have advanced.
+        if statesync.enabled():
+            statesync.push()
     if proc.returncode != 0:
         raise SystemExit(f"wa-bridge fetch failed ({proc.returncode}):\n{proc.stderr.strip()}")
     try:

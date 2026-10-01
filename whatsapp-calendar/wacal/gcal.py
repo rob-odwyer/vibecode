@@ -22,7 +22,12 @@ from typing import Any
 from .config import cfg, state_path
 
 TOKEN_FILE = "google_token.json"
-SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
+SCOPES = [
+    "https://www.googleapis.com/auth/calendar.events",
+    # Only files this app created: used by wacal.statesync to keep the
+    # bridge's SQLite state in a Drive folder between routine runs.
+    "https://www.googleapis.com/auth/drive.file",
+]
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 API = "https://www.googleapis.com/calendar/v3"

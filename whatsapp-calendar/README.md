@@ -57,11 +57,8 @@ Google side: enable the Calendar API in a Cloud project, create an OAuth
 client of type **Desktop app**, and add your account as a test user while the
 app is unpublished. Scope requested is `calendar.events` only.
 
-For a routine whose container starts empty each run, put
-`GOOGLE_REFRESH_TOKEN` (from `google_auth.py --print-refresh-token`) plus the
-client id/secret in the environment's secrets instead of shipping the token
-file, and persist `state/cursor.json` somewhere (commit it, or store it in a
-bucket). The cursor is the only state the routine needs between runs.
+For a routine whose container starts empty each run, see "Running it as a
+remote routine" below.
 
 ### Source: whatsmeow (the Go bridge)
 
@@ -84,9 +81,8 @@ conversations, which is stored the same way, so the first run has context.
 
 Two files in `state/` must persist between runs: `whatsmeow.db` (the session
 and Signal keys: losing it means re-linking) and `wa-messages.sqlite3`. For a
-routine whose container starts empty, keep `state/` on a mounted volume or
-sync it to a bucket before and after each run. They are secrets: never
-commit them.
+routine whose container starts empty, turn on the Drive state sync described
+under "Running it as a remote routine". They are secrets: never commit them.
 
 Message edits update the stored text under the original id; deleted
 messages, reactions and stickers are dropped. Group *Event* messages are
@@ -130,6 +126,7 @@ All are `python scripts/<name>.py --help` friendly and print JSON.
 | `ack.py` | Move the cursor forward once a batch is safely in the calendar. |
 | `google_auth.py` | One-time OAuth consent. |
 | `inbox_server.py` | Webhook receiver + message API for the `inbox` source. |
+| `state_sync.py` | `status` / `push` / `pull` / `unlock` the Drive-mirrored state. |
 | `bridge/wa-bridge` | Go: `link`, `fetch`, `serve`, `groups` for the `whatsmeow` source. |
 
 ### Idempotency
@@ -141,12 +138,70 @@ messages is harmless, a plan that changes across messages updates in place,
 and an event you delete by hand in Google Calendar stays deleted unless you
 pass `--force`.
 
-## Running it as a routine
+## Running it as a remote routine
 
-Schedule `ROUTINE.md` as the prompt of a Claude Code routine (hourly or daily
-is plenty). The agent runs the scripts in order: fetch → extract → search →
-upsert (dry-run, then real) → ack → report. If a step fails it stops before
-`ack`, so the next run picks the same messages up again.
+A scheduled Claude Code routine starts from an empty container every run, so
+four things have to be provided by the environment rather than the repo.
+
+**1. Network.** The environment's allowed domains must include:
+
+| Host | Used by |
+|---|---|
+| `web.whatsapp.com` | the bridge's WebSocket (pairing and fetching) |
+| `www.googleapis.com`, `oauth2.googleapis.com` | Calendar, Drive, token refresh |
+| `proxy.golang.org`, `sum.golang.org` | building the bridge in the setup script |
+
+**2. Secrets** (environment variables): `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` (from
+`google_auth.py --print-refresh-token`), `WACAL_STATE_PASSPHRASE` (see below),
+plus the plain settings `TIMEZONE`, `WACAL_SOURCE=whatsmeow`,
+`WACAL_WA_CHAT_ID`, `WACAL_STATE_SYNC=drive`.
+
+**3. The bridge binary.** Point the environment's setup script at
+`whatsapp-calendar/setup-env.sh`; it builds `bridge/wa-bridge` if missing.
+
+**4. State between runs: Google Drive.** Set `WACAL_STATE_SYNC=drive` and the
+`whatsmeow` source mirrors `state/whatsmeow.db`, `state/wa-messages.sqlite3`
+and `state/cursor.json` to a Drive folder (`wacal-state`) using the same
+OAuth client as the calendar, with the `drive.file` scope (it can only see
+files it created). Each fetch does:
+
+```
+pull (takes a lease)  →  wa-bridge fetch  →  push (releases the lease)
+```
+
+The push sits in a `finally` right after the bridge exits, because
+`whatsmeow.db` carries Signal ratchet state that advances with every
+decrypted message: a run that fetched but did not push would leave the next
+run unable to read those messages. The lease (a `lock.json` in the folder,
+stale after 30 minutes) stops two runs from decrypting with the same keys at
+once; a run that finds the lease held reports it and stops rather than
+forcing. `ack.py` pushes the cursor on its own.
+
+`whatsmeow.db` lets whoever holds it read your WhatsApp as a linked device.
+Set `WACAL_STATE_PASSPHRASE` and every file is AES-256 encrypted (openssl)
+before it reaches Drive; the passphrase lives only in the environment's
+secrets.
+
+### One-time bootstrap (on your own machine)
+
+```bash
+cd whatsapp-calendar && cp .env.example .env    # fill in Google client id/secret, TIMEZONE
+python scripts/google_auth.py --print-refresh-token   # consents to calendar + drive.file
+cd bridge && go build -o wa-bridge . && cd ..
+./bridge/wa-bridge link --phone +44XXXXXXXXXX          # pair; waits for history sync
+./bridge/wa-bridge groups                              # pick the chat JID
+WACAL_STATE_SYNC=drive WACAL_STATE_PASSPHRASE=... python scripts/state_sync.py push
+python scripts/state_sync.py status                    # confirm the files landed
+```
+
+Then put the refresh token, passphrase and settings into the routine's
+environment, and schedule `ROUTINE.md` as its prompt. Hourly to daily is a
+sensible cadence; a linked device that stays offline for weeks can be
+unlinked by WhatsApp, so do not go rarer than daily.
+
+After the bootstrap, delete the local `state/` copies if you don't want a
+second copy of the session lying around, or keep them as a backup.
 
 ## Tests
 
@@ -158,6 +213,6 @@ cd bridge && go test ./...
 Python: the export parser (several locale formats, multi-line messages,
 dedup), event validation and key stability, the Calendar request body
 builder, the webhook payload flattening plus signature check, and the
-whatsmeow adapter's command line. Go: message conversion (text, captions,
+whatsmeow adapter's command line, and Drive state sync against a fake Drive (lease, stale takeover, encryption). Go: message conversion (text, captions,
 replies, edits, native Events, skipped reactions) and the SQLite store. No
 network access needed.
