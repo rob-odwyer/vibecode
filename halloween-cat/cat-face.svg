@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Spooky black cat face, designed to be cut from black material.
+
+  Units: 1 user unit = 1 mm. The design is 300 mm wide x 300 mm tall at 100 %.
+  Scale the whole file to change the size; everything scales together.
+  At 100 % the eye holes are 72 mm in diameter, centred 104 mm apart.
+
+  Layers (ids):
+    #head   outer silhouette with the two round eye holes already cut through
+            (single compound path, fill-rule evenodd).
+    #eyes   the same eye holes as plain circles, for cutters that prefer holes
+            as separate shapes. Invisible in the preview.
+    #mouth  OPTIONAL nose + fanged grin cutouts. Delete this group for a plain
+            face with only the eye holes.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="300mm" height="300mm" viewBox="0 0 300 300">
+  <title>Spooky black cat face (cut file)</title>
+
+  <!-- Head silhouette with eye holes cut out -->
+  <path id="head" fill="#000" fill-rule="evenodd" d="
+    M 112 92
+    C 130 84, 170 84, 188 92
+    C 204 68, 234 38, 260 8
+    C 268 50, 274 94, 266 132
+    C 282 150, 290 174, 280 196
+    L 294 204 L 274 213 L 290 226 L 268 235 L 278 250 L 252 255
+    C 236 272, 206 284, 150 286
+    C 94 284, 64 272, 48 255
+    L 22 250 L 32 235 L 10 226 L 26 213 L 6 204 L 20 196
+    C 10 174, 18 150, 34 132
+    C 26 94, 32 50, 40 8
+    C 66 38, 96 68, 112 92
+    Z
+    M 98 165 m -36 0 a 36 36 0 1 0 72 0 a 36 36 0 1 0 -72 0 Z
+    M 202 165 m -36 0 a 36 36 0 1 0 72 0 a 36 36 0 1 0 -72 0 Z
+  "/>
+
+  <!-- Eye holes as standalone circles (72 mm diameter) -->
+  <g id="eyes" fill="none" stroke="none">
+    <circle cx="98" cy="165" r="36"/>
+    <circle cx="202" cy="165" r="36"/>
+  </g>
+
+  <!-- Optional: nose and fanged grin, cut through -->
+  <g id="mouth" fill="#fff">
+    <path id="nose" d="M 136 194 L 164 194 L 150 212 Z"/>
+    <path id="grin" d="
+      M 82 212
+      C 94 224, 108 229, 118 230
+      L 124 244 L 130 231
+      C 140 233, 160 233, 170 231
+      L 176 244 L 182 230
+      C 192 229, 206 224, 218 212
+      C 200 252, 162 260, 150 260
+      C 138 260, 100 252, 82 212
+      Z"/>
+  </g>
+</svg>
